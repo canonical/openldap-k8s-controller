@@ -1,10 +1,25 @@
 # Copyright 2020 Tom Haddon
 # See LICENSE file for licensing details.
-#
-# This is only an example, and you should edit to suit your needs.
-# If you don't need config, you can remove the file entirely.
 options:
-  thing:
-    default: 🎁
-    description: A thing used by the charm.
-    type: string
+    image_path:
+        type: string
+        description: |
+          The location of the image to use, e.g. "registry.example.com/openldap:v1".
+
+          This setting is required.
+        default: ''
+    image_username:
+        type: string
+        description: |
+          The username for accessing the registry specified in openldap_image_path.
+        default: ''
+    image_password:
+        type: string
+        description: |
+          The password associated with openldap_image_username for accessing the registry specified in openldap_image_path.
+        default: ''
+    admin_password:
+        type: string
+        description: |
+          The password for the OpenLDAP admin user.
+        default: ''

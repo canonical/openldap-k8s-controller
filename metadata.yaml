@@ -1,7 +1,9 @@
 # Copyright 2020 Tom Haddon
 # See LICENSE file for licensing details.
-name: charm-k8s-openldap
+name: openldap
 description: |
-  TODO: fill out the charm's description
+  A basic OpenLDAP server.
 summary: |
-  TODO: fill out the charm's summary
+  A basic OpenLDAP server.
+series:
+  - kubernetes
