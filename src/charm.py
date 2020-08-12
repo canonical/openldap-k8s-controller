@@ -3,6 +3,7 @@
 # See LICENSE file for licensing details.
 
 import logging
+import json
 
 from ops.charm import (
     CharmBase,
@@ -18,12 +19,21 @@ from ops.model import (
     ActiveStatus,
     BlockedStatus,
     MaintenanceStatus,
+    WaitingStatus,
 )
+
+from interface import pgsql
+
+# Until https://github.com/canonical/operator/issues/317 is
+# resolved, we'll directly manage charm state ourselves.
+from charmstate import state_get, state_set
+
 
 logger = logging.getLogger(__name__)
 
 
 REQUIRED_SETTINGS = ['admin_password']
+DATABASE_NAME = 'openldap'
 
 
 class OpenLDAPDBMasterAvailableEvent(EventBase):
@@ -48,6 +58,55 @@ class OpenLDAPK8sCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self.configure_pod)
         self.framework.observe(self.on.leader_elected, self.configure_pod)
         self.framework.observe(self.on.upgrade_charm, self.configure_pod)
+
+        # database
+        self.db = pgsql.PostgreSQLClient(self, 'db')
+        self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)  # NOQA: E501
+        self.framework.observe(self.db.on.master_changed, self._on_master_changed)
+        self.framework.observe(self.db.on.standby_changed, self._on_standby_changed)
+        self.framework.observe(self.on.db_master_available, self.configure_pod)
+
+    def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent):
+        """Handle db-relation-joined."""
+        if self.model.unit.is_leader():
+            # Provide requirements to the PostgreSQL server.
+            event.database = DATABASE_NAME  # Request database named mydbname
+            # event.extensions = ['citext']  # Request the citext extension installed
+        elif event.database != DATABASE_NAME:
+            # Leader has not yet set requirements. Defer, incase this unit
+            # becomes leader and needs to perform that operation.
+            event.defer()
+            return
+
+    def _on_master_changed(self, event: pgsql.MasterChangedEvent):
+        """Handle changes in the primary database unit."""
+        if event.database != DATABASE_NAME:
+            # Leader has not yet set requirements. Wait until next
+            # event, or risk connecting to an incorrect database.
+            return
+
+        state_set(
+            {
+                'db_conn_str': None if event.master is None else event.master.conn_str,
+                'db_uri': None if event.master is None else event.master.uri,
+            }
+        )
+
+        if event.master is None:
+            return
+
+        self.on.db_master_available.emit()
+
+    def _on_standby_changed(self, event: pgsql.StandbyChangedEvent):
+        """Handle changes in the secondary database unit(s)."""
+        if event.database != DATABASE_NAME:
+            # Leader has not yet set requirements. Wait until next
+            # event, or risk connecting to an incorrect database.
+            return
+
+        state_set({'db_ro_uris': json.dumps([c.uri for c in event.standbys])})
+
+        # TODO(pjdc): Emit event when we add support for read replicas
 
     def _check_for_config_problems(self):
         """Check for some simple configuration problems and return a
@@ -100,15 +159,23 @@ class OpenLDAPK8sCharm(CharmBase):
     def _make_pod_config(self):
         """Return an envConfig with some core configuration."""
         config = self.model.config
-        pod_config = {}
+        db_uri = state_get('db_uri').replace('postgresql://', 'postgres://')
+        pod_config = {
+                'LDAP_DB_URI': db_uri,
+                }
 
         if config['admin_password']:
-            pod_config['admin_password'] = config['admin_password']
+            pod_config['LDAP_ADMIN_PASSWORD'] = config['admin_password']
 
         return pod_config
 
     def configure_pod(self, event):
         """Assemble the pod spec and apply it, if possible."""
+        if not state_get('db_uri'):
+            self.unit.status = WaitingStatus('Waiting for database relation')
+            event.defer()
+            return
+
         if not self.unit.is_leader():
             self.unit.status = ActiveStatus()
             return

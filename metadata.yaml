@@ -5,5 +5,10 @@ description: |
   A basic OpenLDAP server.
 summary: |
   A basic OpenLDAP server.
+min-juju-version: 2.8.0  # charm storage in state
 series:
   - kubernetes
+requires:
+  db:
+    interface: pgsql
+    limit: 1
