@@ -21,7 +21,7 @@ clean:
 	@echo "Cleaning files"
 	@git clean -fXd
 
-bind.charm: src/*.py requirements.txt
+openldap.charm: src/*.py requirements.txt
 	charmcraft build
 
 image-deps:

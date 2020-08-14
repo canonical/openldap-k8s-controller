@@ -50,9 +50,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def test_check_for_config_problems(self):
         """Config problems as a string."""
         self.harness.update_config(CONFIG_NO_ADMIN_PASSWORD)
-        expected = (
-            'required setting(s) empty: admin_password'
-        )
+        expected = 'required setting(s) empty: admin_password'
         self.assertEqual(self.harness.charm._check_for_config_problems(), expected)
 
     def test_make_pod_config(self):
@@ -88,7 +86,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
                     },
                     'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
                     'envConfig': self.harness.charm._make_pod_config(),
-                    'kubernetes': {'readinessProbe': {'tcpSocket': {'port': 389}},}
+                    'kubernetes': {'readinessProbe': {'tcpSocket': {'port': 389}},},
                 }
             ],
         }

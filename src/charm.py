@@ -126,9 +126,7 @@ class OpenLDAPK8sCharm(CharmBase):
             'imagePath': config['image_path'],
         }
         if config['image_username']:
-            image_details.update(
-                {'username': config['image_username'], 'password': config['image_password']}
-            )
+            image_details.update({'username': config['image_username'], 'password': config['image_password']})
         pod_config = self._make_pod_config()
 
         return {
@@ -139,9 +137,7 @@ class OpenLDAPK8sCharm(CharmBase):
                     'imageDetails': image_details,
                     'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
                     'envConfig': pod_config,
-                    'kubernetes': {
-                        'readinessProbe': {'tcpSocket': {'port': 389}},
-                    },
+                    'kubernetes': {'readinessProbe': {'tcpSocket': {'port': 389}},},
                 }
             ],
         }
