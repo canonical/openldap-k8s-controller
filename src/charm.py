@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2020 Tom Haddon
+# Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 
 import logging
@@ -66,7 +66,6 @@ class OpenLDAPK8sCharm(CharmBase):
         if self.model.unit.is_leader():
             # Provide requirements to the PostgreSQL server.
             event.database = DATABASE_NAME  # Request database named mydbname
-            # event.extensions = ['citext']  # Request the citext extension installed
         elif event.database != DATABASE_NAME:
             # Leader has not yet set requirements. Defer, incase this unit
             # becomes leader and needs to perform that operation.
@@ -97,7 +96,7 @@ class OpenLDAPK8sCharm(CharmBase):
 
         self._state.db_ro_uris = [c.uri for c in event.standbys]
 
-        # TODO(pjdc): Emit event when we add support for read replicas
+        # TODO: Emit event when we add support for read replicas
 
     def _check_for_config_problems(self):
         """Check for some simple configuration problems and return a

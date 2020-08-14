@@ -1,4 +1,4 @@
-# Copyright 2020 Dave Lawson
+# Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 options:
     image_path:
