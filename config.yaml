@@ -1,4 +1,4 @@
-# Copyright 2020 Tom Haddon
+# Copyright 2020 Dave Lawson
 # See LICENSE file for licensing details.
 options:
     image_path:
@@ -11,12 +11,12 @@ options:
     image_username:
         type: string
         description: |
-          The username for accessing the registry specified in openldap_image_path.
+          The username for accessing the registry specified in image_path.
         default: ''
     image_password:
         type: string
         description: |
-          The password associated with openldap_image_username for accessing the registry specified in openldap_image_path.
+          The password associated with image_username for accessing the registry specified in image_path.
         default: ''
     admin_password:
         type: string

@@ -3,7 +3,6 @@
 # See LICENSE file for licensing details.
 
 import logging
-import json
 
 from ops.charm import (
     CharmBase,
@@ -24,11 +23,6 @@ from ops.model import (
 
 from interface import pgsql
 
-# Until https://github.com/canonical/operator/issues/317 is
-# resolved, we'll directly manage charm state ourselves.
-from charmstate import state_get, state_set
-
-
 logger = logging.getLogger(__name__)
 
 
@@ -47,7 +41,7 @@ class OpenLDAPCharmEvents(CharmEvents):
 
 
 class OpenLDAPK8sCharm(CharmBase):
-    _stored = StoredState()
+    _state = StoredState()
 
     on = OpenLDAPCharmEvents()
 
@@ -60,6 +54,7 @@ class OpenLDAPK8sCharm(CharmBase):
         self.framework.observe(self.on.upgrade_charm, self.configure_pod)
 
         # database
+        self._state.set_default(db_conn_str=None, db_uri=None, db_ro_uris=[])
         self.db = pgsql.PostgreSQLClient(self, 'db')
         self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)  # NOQA: E501
         self.framework.observe(self.db.on.master_changed, self._on_master_changed)
@@ -85,12 +80,8 @@ class OpenLDAPK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        state_set(
-            {
-                'db_conn_str': None if event.master is None else event.master.conn_str,
-                'db_uri': None if event.master is None else event.master.uri,
-            }
-        )
+        self._state.db_conn_str = None if event.master is None else event.master.conn_str
+        self._state.db_uri = None if event.master is None else event.master.uri
 
         if event.master is None:
             return
@@ -104,7 +95,7 @@ class OpenLDAPK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        state_set({'db_ro_uris': json.dumps([c.uri for c in event.standbys])})
+        self._state.db_ro_uris = [c.uri for c in event.standbys]
 
         # TODO(pjdc): Emit event when we add support for read replicas
 
@@ -159,19 +150,19 @@ class OpenLDAPK8sCharm(CharmBase):
     def _make_pod_config(self):
         """Return an envConfig with some core configuration."""
         config = self.model.config
-        db_uri = state_get('db_uri').replace('postgresql://', 'postgres://')
+        db_uri = self._state.db_uri
         pod_config = {
-                'LDAP_DB_URI': db_uri,
-                }
+            'LDAP_DB_URI': db_uri,
+        }
 
-        if config['admin_password']:
+        if 'admin_password' in config:
             pod_config['LDAP_ADMIN_PASSWORD'] = config['admin_password']
 
         return pod_config
 
     def configure_pod(self, event):
         """Assemble the pod spec and apply it, if possible."""
-        if not state_get('db_uri'):
+        if not self._state.db_uri:
             self.unit.status = WaitingStatus('Waiting for database relation')
             event.defer()
             return
@@ -194,4 +185,4 @@ class OpenLDAPK8sCharm(CharmBase):
 
 
 if __name__ == "__main__":
-    main(OpenLDAPK8sCharm)
+    main(OpenLDAPK8sCharm, use_juju_for_storage=True)
