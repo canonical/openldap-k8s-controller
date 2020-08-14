@@ -1,0 +1,3 @@
+[submodule "mod/interface-pgsql"]
+	path = mod/interface-pgsql
+	url = lp:~stub/interface-pgsql/+git/operator
