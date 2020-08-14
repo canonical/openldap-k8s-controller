@@ -54,6 +54,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         self.assertEqual(self.harness.charm._check_for_config_problems(), expected)
 
     def test_make_pod_config(self):
+        """Make basic, correct pod config."""
         self.harness.update_config(CONFIG_IMAGE_NO_CREDS)
         self.harness.charm._state.db_uri = 'postgres://hoohoo:foo@5.5.5.5:5422/postgres'
         expected = {
@@ -63,7 +64,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         self.assertEqual(self.harness.charm._make_pod_config(), expected)
 
     def test_make_pod_config_no_password(self):
-        # This should never happen, but cover it anyway.
+        """Missing admin password in config shouldn't explode at least."""
         self.harness.update_config(CONFIG_NO_ADMIN_PASSWORD)
         self.harness.charm._state.db_uri = 'postgres://hoohoo:foo@5.5.5.5:5422/postgres'
         expected = {
@@ -72,6 +73,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         self.assertEqual(self.harness.charm._make_pod_config(), expected)
 
     def test_make_pod_spec(self):
+        """Basic, correct pod spec."""
         self.harness.update_config(CONFIG_ALL)
         self.harness.charm._state.db_uri = 'postgres://hoohoo:foo@5.5.5.5:5422/postgres'
         expected = {
