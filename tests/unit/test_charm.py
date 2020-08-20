@@ -40,14 +40,6 @@ CONFIG_NO_ADMIN_PASSWORD = {
     'image_password': '',
 }
 
-DB_URI = {
-    'db_name': 'openldap',
-    'db_user': 'ldap_user',
-    'db_password': 'ldap_password',
-    'db_host': '1.1.1.1',
-    'db_port': '5432',
-}
-
 
 class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def setUp(self):
