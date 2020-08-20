@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Make an encrypted version of the admin password passed into the pod, stripping newlines
-export ENCRYPTED_ADMIN_PASSWORD=$(/usr/sbin/slappasswd -s $LDAP_ADMIN_PASSWORD | tr -d '\n')
+export ENCRYPTED_ADMIN_PASSWORD=""
+ENCRYPTED_ADMIN_PASSWORD=$(/usr/sbin/slappasswd -s "$LDAP_ADMIN_PASSWORD" | tr -d '\n')
 # Substitute embedded environment variables
 envsubst < /srv/image-files/slapd.conf > /etc/openldap/slapd.conf
 envsubst < /srv/image-files/odbc.ini > /etc/odbc.ini

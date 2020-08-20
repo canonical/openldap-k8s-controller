@@ -29,7 +29,7 @@ image-deps:
 
 image-lint: image-deps
 	@echo "Running shellcheck."
-	@shellcheck image-scripts/dump-environment.sh
+	@shellcheck image-scripts/*.sh
 
 image-build: image-lint
 	@echo "Building the image."
