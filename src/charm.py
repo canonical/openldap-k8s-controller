@@ -54,11 +54,10 @@ class OpenLDAPK8sCharm(CharmBase):
         self.framework.observe(self.on.upgrade_charm, self._configure_pod)
 
         # database
-        self._state.set_default(db_name=None, db_user=None, db_password=None, db_host=None, db_port=None)
+        self._state.set_default(postgres=None)
         self.db = pgsql.PostgreSQLClient(self, 'db')
         self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)
         self.framework.observe(self.db.on.master_changed, self._on_master_changed)
-        self.framework.observe(self.db.on.standby_changed, self._on_standby_changed)
         self.framework.observe(self.on.db_master_available, self._configure_pod)
 
     def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent):
@@ -78,14 +77,17 @@ class OpenLDAPK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        self._state.db_name = None if event.master is None else event.master.dbname
-        self._state.db_user = None if event.master is None else event.master.user
-        self._state.db_password = None if event.master is None else event.master.password
-        self._state.db_host = None if event.master is None else event.master.host
-        self._state.db_port = None if event.master is None else event.master.port
-
+        self._state.postgres_dict = None
         if event.master is None:
             return
+
+        self._state.postgres = {
+            'dbname': event.master.dbname,
+            'user': event.master.user,
+            'password': event.master.password,
+            'host': event.master.host,
+            'port': event.master.port,
+        }
 
         self.on.db_master_available.emit()
 
@@ -136,11 +138,11 @@ class OpenLDAPK8sCharm(CharmBase):
         """Return an envConfig with some core configuration."""
         config = self.model.config
         pod_config = {
-            'POSTGRES_NAME': self._state.db_name,
-            'POSTGRES_USER': self._state.db_user,
-            'POSTGRES_PASSWORD': self._state.db_password,
-            'POSTGRES_HOST': self._state.db_host,
-            'POSTGRES_PORT': self._state.db_port,
+            'POSTGRES_NAME': self._state.postgres['dbname'],
+            'POSTGRES_USER': self._state.postgres['user'],
+            'POSTGRES_PASSWORD': self._state.postgres['password'],
+            'POSTGRES_HOST': self._state.postgres['host'],
+            'POSTGRES_PORT': self._state.postgres['port'],
         }
 
         if 'admin_password' in config:
@@ -150,7 +152,7 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def _configure_pod(self, event):
         """Assemble the pod spec and apply it, if possible."""
-        if not self._state.db_name:
+        if not self._state.postgres:
             self.unit.status = WaitingStatus('Waiting for database relation')
             event.defer()
             return

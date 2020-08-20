@@ -40,6 +40,14 @@ CONFIG_NO_ADMIN_PASSWORD = {
     'image_password': '',
 }
 
+DB_URI = {
+    'dbname': 'openldap',
+    'user': 'ldap_user',
+    'password': 'ldap_password',
+    'host': '1.1.1.1',
+    'port': '5432',
+}
+
 
 class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def setUp(self):
@@ -56,11 +64,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def test_make_pod_config(self):
         """Make basic, correct pod config."""
         self.harness.update_config(CONFIG_IMAGE_NO_CREDS)
-        self.harness.charm._state.db_name = 'openldap'
-        self.harness.charm._state.db_user = 'ldap_user'
-        self.harness.charm._state.db_password = 'ldap_password'
-        self.harness.charm._state.db_host = '1.1.1.1'
-        self.harness.charm._state.db_port = '5432'
+        self.harness.charm._state.postgres = DB_URI
         expected = {
             'POSTGRES_NAME': 'openldap',
             'POSTGRES_USER': 'ldap_user',
@@ -74,11 +78,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def test_make_pod_config_no_password(self):
         """Missing admin password in config shouldn't explode at least."""
         self.harness.update_config(CONFIG_NO_ADMIN_PASSWORD)
-        self.harness.charm._state.db_name = 'openldap'
-        self.harness.charm._state.db_user = 'ldap_user'
-        self.harness.charm._state.db_password = 'ldap_password'
-        self.harness.charm._state.db_host = '1.1.1.1'
-        self.harness.charm._state.db_port = '5432'
+        self.harness.charm._state.postgres = DB_URI
         expected = {
             'POSTGRES_NAME': 'openldap',
             'POSTGRES_USER': 'ldap_user',
@@ -91,11 +91,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def test_make_pod_spec(self):
         """Basic, correct pod spec."""
         self.harness.update_config(CONFIG_ALL)
-        self.harness.charm._state.db_name = 'openldap'
-        self.harness.charm._state.db_user = 'ldap_user'
-        self.harness.charm._state.db_password = 'ldap_password'
-        self.harness.charm._state.db_host = '1.1.1.1'
-        self.harness.charm._state.db_port = '5432'
+        self.harness.charm._state.postgres = DB_URI
         expected = {
             'version': 3,
             'containers': [
