@@ -40,6 +40,14 @@ CONFIG_NO_ADMIN_PASSWORD = {
     'image_password': '',
 }
 
+DB_URI = {
+    'db_name': 'openldap',
+    'db_user': 'ldap_user',
+    'db_password': 'ldap_password',
+    'db_host': '1.1.1.1',
+    'db_port': '5432',
+}
+
 
 class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def setUp(self):
@@ -56,9 +64,17 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def test_make_pod_config(self):
         """Make basic, correct pod config."""
         self.harness.update_config(CONFIG_IMAGE_NO_CREDS)
-        self.harness.charm._state.db_uri = 'postgres://hoohoo:foo@5.5.5.5:5422/postgres'
+        self.harness.charm._state.db_name = 'openldap'
+        self.harness.charm._state.db_user = 'ldap_user'
+        self.harness.charm._state.db_password = 'ldap_password'
+        self.harness.charm._state.db_host = '1.1.1.1'
+        self.harness.charm._state.db_port = '5432'
         expected = {
-            'LDAP_DB_URI': 'postgres://hoohoo:foo@5.5.5.5:5422/postgres',
+            'POSTGRES_NAME': 'openldap',
+            'POSTGRES_USER': 'ldap_user',
+            'POSTGRES_PASSWORD': 'ldap_password',
+            'POSTGRES_HOST': '1.1.1.1',
+            'POSTGRES_PORT': '5432',
             'LDAP_ADMIN_PASSWORD': 'badmin_password',
         }
         self.assertEqual(self.harness.charm._make_pod_config(), expected)
@@ -66,16 +82,28 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
     def test_make_pod_config_no_password(self):
         """Missing admin password in config shouldn't explode at least."""
         self.harness.update_config(CONFIG_NO_ADMIN_PASSWORD)
-        self.harness.charm._state.db_uri = 'postgres://hoohoo:foo@5.5.5.5:5422/postgres'
+        self.harness.charm._state.db_name = 'openldap'
+        self.harness.charm._state.db_user = 'ldap_user'
+        self.harness.charm._state.db_password = 'ldap_password'
+        self.harness.charm._state.db_host = '1.1.1.1'
+        self.harness.charm._state.db_port = '5432'
         expected = {
-            'LDAP_DB_URI': 'postgres://hoohoo:foo@5.5.5.5:5422/postgres',
+            'POSTGRES_NAME': 'openldap',
+            'POSTGRES_USER': 'ldap_user',
+            'POSTGRES_PASSWORD': 'ldap_password',
+            'POSTGRES_HOST': '1.1.1.1',
+            'POSTGRES_PORT': '5432',
         }
         self.assertEqual(self.harness.charm._make_pod_config(), expected)
 
     def test_make_pod_spec(self):
         """Basic, correct pod spec."""
         self.harness.update_config(CONFIG_ALL)
-        self.harness.charm._state.db_uri = 'postgres://hoohoo:foo@5.5.5.5:5422/postgres'
+        self.harness.charm._state.db_name = 'openldap'
+        self.harness.charm._state.db_user = 'ldap_user'
+        self.harness.charm._state.db_password = 'ldap_password'
+        self.harness.charm._state.db_host = '1.1.1.1'
+        self.harness.charm._state.db_port = '5432'
         expected = {
             'version': 3,
             'containers': [

@@ -5,19 +5,18 @@ FROM ubuntu:${DIST_RELEASE}
 LABEL maintainer="openldap-charmers@lists.launchpad.net"
 
 ARG BUILD_DATE
-ARG PKGS_TO_INSTALL
 
 LABEL org.label-schema.build-date=${BUILD_DATE}
 
 # Avoid interactive prompts
 RUN echo 'debconf debconf/frontend select Noninteractive' | debconf-set-selections
 
-# Update all packages, remove cruft, install required packages
-RUN apt-get update && apt-get -y dist-upgrade \
-    && apt-get --purge autoremove -y \
-    && apt-get install -y ${PKGS_TO_INSTALL}
+COPY image-scripts /srv/image-scripts
 
-COPY ./image-scripts/dump-environment.sh /usr/local/bin/
-RUN chmod 0755 /usr/local/bin/dump-environment.sh
+COPY image-files /srv/image-files
 
-CMD /usr/local/bin/dump-environment.sh
+RUN /srv/image-scripts/build-openldap.sh
+
+EXPOSE 389/tcp
+
+CMD /srv/image-scripts/configure-and-run-openldap.sh

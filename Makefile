@@ -1,5 +1,4 @@
 DIST_RELEASE ?= focal
-DOCKER_DEPS = slapd
 
 blacken:
 	@echo "Normalising python layout with black."
@@ -37,7 +36,6 @@ image-build: image-lint
 	@docker build \
 		--no-cache=true \
 		--build-arg BUILD_DATE=$$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-		--build-arg PKGS_TO_INSTALL='$(DOCKER_DEPS)' \
 		--build-arg DIST_RELEASE=$(DIST_RELEASE) \
 		-t openldap:$(DIST_RELEASE)-latest \
 		.
