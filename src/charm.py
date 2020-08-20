@@ -48,17 +48,18 @@ class OpenLDAPK8sCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.framework.observe(self.on.start, self.configure_pod)
-        self.framework.observe(self.on.config_changed, self.configure_pod)
-        self.framework.observe(self.on.leader_elected, self.configure_pod)
-        self.framework.observe(self.on.upgrade_charm, self.configure_pod)
+        self.framework.observe(self.on.start, self._configure_pod)
+        self.framework.observe(self.on.config_changed, self._configure_pod)
+        self.framework.observe(self.on.leader_elected, self._configure_pod)
+        self.framework.observe(self.on.upgrade_charm, self._configure_pod)
 
         # database
         self._state.set_default(db_name=None, db_user=None, db_password=None, db_host=None, db_port=None)
         self.db = pgsql.PostgreSQLClient(self, 'db')
-        self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)  # NOQA: E501
+        self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)
         self.framework.observe(self.db.on.master_changed, self._on_master_changed)
-        self.framework.observe(self.on.db_master_available, self.configure_pod)
+        self.framework.observe(self.db.on.standby_changed, self._on_standby_changed)
+        self.framework.observe(self.on.db_master_available, self._configure_pod)
 
     def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent):
         """Handle db-relation-joined."""
@@ -69,7 +70,6 @@ class OpenLDAPK8sCharm(CharmBase):
             # Leader has not yet set requirements. Defer, incase this unit
             # becomes leader and needs to perform that operation.
             event.defer()
-            return
 
     def _on_master_changed(self, event: pgsql.MasterChangedEvent):
         """Handle changes in the primary database unit."""
@@ -104,11 +104,10 @@ class OpenLDAPK8sCharm(CharmBase):
         """Check configuration setting dependencies and return a list of
         missing settings; otherwise return an empty list."""
         config = self.model.config
-        missing = []
 
-        missing.extend([setting for setting in REQUIRED_SETTINGS if setting not in config])
+        missing = {setting for setting in REQUIRED_SETTINGS if setting not in config}
 
-        return sorted(list(set(missing)))
+        return sorted(missing)
 
     def _make_pod_spec(self):
         """Return a pod spec with some core configuration."""
@@ -149,7 +148,7 @@ class OpenLDAPK8sCharm(CharmBase):
 
         return pod_config
 
-    def configure_pod(self, event):
+    def _configure_pod(self, event):
         """Assemble the pod spec and apply it, if possible."""
         if not self._state.db_name:
             self.unit.status = WaitingStatus('Waiting for database relation')
