@@ -5,6 +5,13 @@ import unittest
 
 from charm import OpenLDAPK8sCharm
 from ops import testing
+from ops.model import (
+    ActiveStatus,
+    BlockedStatus,
+    WaitingStatus,
+)
+
+from unittest.mock import MagicMock
 
 CONFIG_ALL = {
     'image_path': 'example.com/openldap:latest',
@@ -109,3 +116,61 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
             ],
         }
         self.assertEqual(self.harness.charm._make_pod_spec(), expected)
+
+    def test_make_pod_spec_no_image_creds(self):
+        self.harness.update_config(CONFIG_IMAGE_NO_CREDS)
+        self.harness.charm._state.postgres = DB_URI
+        expected = {
+            'version': 3,
+            'containers': [
+                {
+                    'name': 'openldap',
+                    'imageDetails': {'imagePath': 'example.com/openldap:latest',},
+                    'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
+                    'envConfig': self.harness.charm._make_pod_config(),
+                    'kubernetes': {'readinessProbe': {'tcpSocket': {'port': 389}},},
+                }
+            ],
+        }
+        self.assertEqual(self.harness.charm._make_pod_spec(), expected)
+
+    def test_configure_pod_no_postgres_relation(self):
+        """Check that we block correctly without a Postgres relation."""
+        mock_event = MagicMock()
+
+        self.harness.update_config(CONFIG_ALL)
+        expected = WaitingStatus('Waiting for database relation')
+        self.harness.charm._configure_pod(mock_event)
+        self.assertEqual(self.harness.charm.unit.status, expected)
+
+    def test_configure_pod_not_leader(self):
+        """Test pod config as a non-leader."""
+        mock_event = MagicMock()
+
+        self.harness.update_config(CONFIG_ALL)
+        self.harness.charm._state.postgres = DB_URI
+        expected = ActiveStatus()
+        self.harness.charm._configure_pod(mock_event)
+        self.assertEqual(self.harness.charm.unit.status, expected)
+
+    def test_configure_pod_config_problems(self):
+        """Test pod config with missing juju config options."""
+        mock_event = MagicMock()
+
+        self.harness.update_config(CONFIG_NO_ADMIN_PASSWORD)
+        self.harness.charm._state.postgres = DB_URI
+        self.harness.set_leader(True)
+        expected = BlockedStatus('required setting(s) empty: admin_password')
+        self.harness.charm._configure_pod(mock_event)
+        self.assertEqual(self.harness.charm.unit.status, expected)
+
+    def test_configure_pod(self):
+        """Test pod configuration with everything working appropriately."""
+        mock_event = MagicMock()
+
+        self.harness.update_config(CONFIG_ALL)
+        self.harness.charm._state.postgres = DB_URI
+        self.harness.set_leader(True)
+        expected = ActiveStatus()
+        self.harness.charm._configure_pod(mock_event)
+        self.assertEqual(self.harness.charm.unit.status, expected)
