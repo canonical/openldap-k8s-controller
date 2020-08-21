@@ -4,6 +4,7 @@
 import unittest
 
 from charm import OpenLDAPK8sCharm
+from collections import namedtuple
 from ops import testing
 from ops.model import (
     ActiveStatus,
@@ -174,3 +175,29 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         expected = ActiveStatus()
         self.harness.charm._configure_pod(mock_event)
         self.assertEqual(self.harness.charm.unit.status, expected)
+
+    def test_on_database_relation_joined(self):
+        mock_event = MagicMock()
+
+        self.harness.update_config(CONFIG_ALL)
+        self.harness.set_leader(True)
+        expected = "openldap"
+        self.harness.charm._on_database_relation_joined(mock_event)
+        self.assertEqual(mock_event.database, expected)
+
+    def test_on_master_changed(self):
+        mock_event = MagicMock()
+
+        self.harness.update_config(CONFIG_ALL)
+        self.harness.set_leader(True)
+        master = namedtuple('master', ['dbname', 'user', 'password', 'host', 'port'])
+        master.dbname = "openldap"
+        master.user = "ldap_user"
+        master.password = "ldap_password"
+        master.host = "1.1.1.1"
+        master.port = "5432"
+        mock_event.master = master
+        mock_event.database = "openldap"
+
+        self.harness.charm._on_master_changed(mock_event)
+        self.assertEqual(self.harness.charm._state.postgres['dbname'], "openldap")

@@ -29,10 +29,10 @@ create table if not exists ldap_entries
 	id serial not null primary key,
 	dn varchar(255) not null,
 	oc_map_id integer not null references ldap_oc_mappings(id),
-	parent int NOT NULL,
-	keyval int NOT NULL,
-	UNIQUE ( oc_map_id, keyval ),
-	UNIQUE ( dn )
+	parent int not null,
+	keyval int not null,
+	unique ( oc_map_id, keyval ),
+	unique ( dn )
 );
 
 create table if not exists ldap_entry_objclasses

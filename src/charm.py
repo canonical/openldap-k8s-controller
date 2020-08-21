@@ -77,7 +77,7 @@ class OpenLDAPK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        self._state.postgres_dict = None
+        self._state.postgres = None
         if event.master is None:
             return
 
