@@ -54,11 +54,10 @@ class OpenLDAPK8sCharm(CharmBase):
         self.framework.observe(self.on.upgrade_charm, self._configure_pod)
 
         # database
-        self._state.set_default(db_conn_str=None, db_uri=None, db_ro_uris=[])
+        self._state.set_default(postgres=None)
         self.db = pgsql.PostgreSQLClient(self, 'db')
         self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)
         self.framework.observe(self.db.on.master_changed, self._on_master_changed)
-        self.framework.observe(self.db.on.standby_changed, self._on_standby_changed)
         self.framework.observe(self.on.db_master_available, self._configure_pod)
 
     def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent):
@@ -78,24 +77,19 @@ class OpenLDAPK8sCharm(CharmBase):
             # event, or risk connecting to an incorrect database.
             return
 
-        self._state.db_conn_str = None if event.master is None else event.master.conn_str
-        self._state.db_uri = None if event.master is None else event.master.uri
-
+        self._state.postgres = None
         if event.master is None:
             return
 
+        self._state.postgres = {
+            'dbname': event.master.dbname,
+            'user': event.master.user,
+            'password': event.master.password,
+            'host': event.master.host,
+            'port': event.master.port,
+        }
+
         self.on.db_master_available.emit()
-
-    def _on_standby_changed(self, event: pgsql.StandbyChangedEvent):
-        """Handle changes in the secondary database unit(s)."""
-        if event.database != DATABASE_NAME:
-            # Leader has not yet set requirements. Wait until next
-            # event, or risk connecting to an incorrect database.
-            return
-
-        self._state.db_ro_uris = [c.uri for c in event.standbys]
-
-        # TODO: Emit event when we add support for read replicas
 
     def _check_for_config_problems(self):
         """Check for some simple configuration problems and return a
@@ -143,9 +137,12 @@ class OpenLDAPK8sCharm(CharmBase):
     def _make_pod_config(self):
         """Return an envConfig with some core configuration."""
         config = self.model.config
-        db_uri = self._state.db_uri
         pod_config = {
-            'LDAP_DB_URI': db_uri,
+            'POSTGRES_NAME': self._state.postgres['dbname'],
+            'POSTGRES_USER': self._state.postgres['user'],
+            'POSTGRES_PASSWORD': self._state.postgres['password'],
+            'POSTGRES_HOST': self._state.postgres['host'],
+            'POSTGRES_PORT': self._state.postgres['port'],
         }
 
         if 'admin_password' in config:
@@ -155,7 +152,7 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def _configure_pod(self, event):
         """Assemble the pod spec and apply it, if possible."""
-        if not self._state.db_uri:
+        if not self._state.postgres:
             self.unit.status = WaitingStatus('Waiting for database relation')
             event.defer()
             return
