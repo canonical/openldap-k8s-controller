@@ -88,6 +88,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         self.harness.update_config(CONFIG_NO_ADMIN_PASSWORD)
         self.harness.charm._state.postgres = DB_URI
         expected = {
+            'LDAP_ADMIN_PASSWORD': '',
             'POSTGRES_NAME': 'openldap',
             'POSTGRES_USER': 'ldap_user',
             'POSTGRES_PASSWORD': 'ldap_password',

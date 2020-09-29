@@ -109,7 +109,11 @@ class OpenLDAPK8sCharm(CharmBase):
         missing settings; otherwise return an empty list."""
         config = self.model.config
 
-        missing = {setting for setting in REQUIRED_SETTINGS if setting not in config}
+        # Options in config.yaml are always present as at least ""
+        # so config[setting] will not fail with a KeyError if unset via juju.
+        # We define missing in terms of being required by the charm and explicitly
+        # set rather than default from config.yaml.
+        missing = {setting for setting in REQUIRED_SETTINGS if not config[setting]}
 
         return sorted(missing)
 
