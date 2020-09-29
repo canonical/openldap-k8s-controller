@@ -4,6 +4,7 @@
 
 import logging
 
+import ops.lib
 from ops.charm import (
     CharmBase,
     CharmEvents,
@@ -21,7 +22,8 @@ from ops.model import (
     WaitingStatus,
 )
 
-from interface import pgsql
+
+pgsql = ops.lib.use("pgsql", 1, "postgresql-charmers@lists.launchpad.net")
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +131,9 @@ class OpenLDAPK8sCharm(CharmBase):
                     'imageDetails': image_details,
                     'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
                     'envConfig': pod_config,
-                    'kubernetes': {'readinessProbe': {'tcpSocket': {'port': 389}},},
+                    'kubernetes': {
+                        'readinessProbe': {'tcpSocket': {'port': 389}},
+                    },
                 }
             ],
         }

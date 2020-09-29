@@ -112,7 +112,9 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
                     },
                     'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
                     'envConfig': self.harness.charm._make_pod_config(),
-                    'kubernetes': {'readinessProbe': {'tcpSocket': {'port': 389}},},
+                    'kubernetes': {
+                        'readinessProbe': {'tcpSocket': {'port': 389}},
+                    },
                 }
             ],
         }
@@ -126,10 +128,14 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
             'containers': [
                 {
                     'name': 'openldap',
-                    'imageDetails': {'imagePath': 'example.com/openldap:latest',},
+                    'imageDetails': {
+                        'imagePath': 'example.com/openldap:latest',
+                    },
                     'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
                     'envConfig': self.harness.charm._make_pod_config(),
-                    'kubernetes': {'readinessProbe': {'tcpSocket': {'port': 389}},},
+                    'kubernetes': {
+                        'readinessProbe': {'tcpSocket': {'port': 389}},
+                    },
                 }
             ],
         }
