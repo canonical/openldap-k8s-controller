@@ -69,6 +69,4 @@ configure `pga_hba.conf` to let the k8s pods connect to the database.)
 
 ## Testing
 
-Just run `run_tests`:
-
-    ./run_tests
+Just run `make test`.
