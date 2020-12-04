@@ -9,7 +9,7 @@ cloud, attached to a controller using `juju add-k8s`.
 
 ## Usage
 
-To deploy this charm, run:
+To deploy this charm with both OpenLDAP and PostgreSQL inside a k8s model, run:
 
     juju deploy cs:~openldap-charmers/openldap --admin_password=admin
     juju deploy cs:~postgresql-charmers/postgresql-k8s postgresql
