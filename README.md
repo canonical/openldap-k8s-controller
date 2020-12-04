@@ -2,17 +2,18 @@
 
 ## Overview
 
-This charm provides a basic OpenLDAP server using the SQL backend.
+This charm provides an OpenLDAP server using the SQL backend.
 
 This is a k8s workload charm and can only be deployed to to a Juju k8s
 cloud, attached to a controller using `juju add-k8s`.
 
 ## Usage
 
-See config option descriptions in config.yaml.
+To deploy this charm with both OpenLDAP and PostgreSQL inside a k8s model, run:
 
-After deploying this charm, you will need to create a relation to a PostgreSQL
-database to provide backend storage for OpenLDAP.
+    juju deploy cs:~openldap-charmers/openldap --admin_password=admin
+    juju deploy cs:~postgresql-charmers/postgresql-k8s postgresql
+    juju add-relation openldap:db postgresql:db
 
 ### Developing
 

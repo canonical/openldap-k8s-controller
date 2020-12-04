@@ -4,10 +4,10 @@ options:
     image_path:
         type: string
         description: |
-          The location of the image to use, e.g. "registry.example.com/openldap:v1".
+          The location of the image to use.
 
           This setting is required.
-        default: ''
+        default: 'openldapcharmers/openldap:edge'
     image_username:
         type: string
         description: |
