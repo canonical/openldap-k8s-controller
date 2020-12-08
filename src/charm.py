@@ -56,6 +56,7 @@ class OpenLDAPK8sCharm(CharmBase):
         self.framework.observe(self.on.config_changed, self._configure_pod)
         self.framework.observe(self.on.leader_elected, self._configure_pod)
         self.framework.observe(self.on.upgrade_charm, self._configure_pod)
+        self.framework.observe(self.on.get_admin_password_action, self._on_get_admin_password_action)
 
         # database
         self._state.set_default(postgres=None)
@@ -120,7 +121,12 @@ class OpenLDAPK8sCharm(CharmBase):
             ],
         }
 
+    def _on_get_admin_password_action(self, event):
+        """Handle on get-admin-password action."""
+        event.set_results(self.get_admin_password)
+
     def get_admin_password(self):
+        """Get (or set if not yet created) an LDAP admin password."""
         try:
             return self.leader_data["admin_password"]
         except KeyError:
