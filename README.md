@@ -17,7 +17,7 @@ To deploy this charm with both OpenLDAP and PostgreSQL inside a k8s model, run:
 
 To retrieve the auto-generated LDAP admin password, run:
 
-    juju run-action openldap/0 get-admin-password
+    juju run --unit openldap/0 get-admin-password
 
 ### Developing
 
