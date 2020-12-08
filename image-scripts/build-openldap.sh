@@ -6,6 +6,8 @@ apt-get update
 apt-get -y dist-upgrade
 apt-get --purge autoremove -y
 apt-get install -y wget unixodbc make gcc unixodbc-dev groff-base ldap-utils odbc-postgresql gettext postgresql-client
+# Needed for juju actions to work.
+apt-get install -y python3-yaml
 
 echo "Making build dir"
 mkdir -p /srv/build

@@ -123,7 +123,7 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def _on_get_admin_password_action(self, event):
         """Handle on get-admin-password action."""
-        event.set_results(self.get_admin_password())
+        event.set_results({"admin-password": self.get_admin_password()})
 
     def get_admin_password(self):
         """Get (or set if not yet created) an LDAP admin password."""
