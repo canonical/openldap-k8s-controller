@@ -2,9 +2,9 @@
 # See LICENSE file for licensing details.
 name: openldap
 description: |
-  A basic OpenLDAP server.
+  An OpenLDAP server using the SQL backend.
 summary: |
-  A basic OpenLDAP server.
+  An OpenLDAP server using the SQL backend.
 min-juju-version: 2.8.0  # charm storage in state
 series:
   - kubernetes
