@@ -123,15 +123,25 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def _on_get_admin_password_action(self, event):
         """Handle on get-admin-password action."""
-        event.set_results({"admin-password": self.get_admin_password()})
+        admin_password = self.get_admin_password()
+        if admin_password:
+            event.set_results({"admin-password": self.get_admin_password()})
+        else:
+            event.set_results({"error": "LDAP admin password has not yet been set, please retry later."})
 
     def get_admin_password(self):
-        """Get (or set if not yet created) an LDAP admin password."""
+        """Get the LDAP admin password.
+
+        If a password hasn't been set yet, create one if we're the leader,
+        or return an empty string if we're not."""
         try:
             return self.leader_data["admin_password"]
         except KeyError:
-            pw = host.pwgen(40)
-            self.leader_data["admin_password"] = pw
+            if self.unit.is_leader:
+                pw = host.pwgen(40)
+                self.leader_data["admin_password"] = pw
+            else:
+                pw = ''
             return pw
 
     def _make_pod_config(self):
