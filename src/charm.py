@@ -4,6 +4,7 @@
 
 import logging
 
+from charmhelpers.core import host
 import ops.lib
 from ops.charm import (
     CharmBase,
@@ -17,10 +18,10 @@ from ops.framework import (
 )
 from ops.model import (
     ActiveStatus,
-    BlockedStatus,
     MaintenanceStatus,
     WaitingStatus,
 )
+from leadership import LeadershipSettings
 
 
 pgsql = ops.lib.use("pgsql", 1, "postgresql-charmers@lists.launchpad.net")
@@ -28,7 +29,6 @@ pgsql = ops.lib.use("pgsql", 1, "postgresql-charmers@lists.launchpad.net")
 logger = logging.getLogger(__name__)
 
 
-REQUIRED_SETTINGS = ['admin_password']
 DATABASE_NAME = 'openldap'
 
 
@@ -50,10 +50,13 @@ class OpenLDAPK8sCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
+        self.leader_data = LeadershipSettings()
+
         self.framework.observe(self.on.start, self._configure_pod)
         self.framework.observe(self.on.config_changed, self._configure_pod)
         self.framework.observe(self.on.leader_elected, self._configure_pod)
         self.framework.observe(self.on.upgrade_charm, self._configure_pod)
+        self.framework.observe(self.on.get_admin_password_action, self._on_get_admin_password_action)
 
         # database
         self._state.set_default(postgres=None)
@@ -93,30 +96,6 @@ class OpenLDAPK8sCharm(CharmBase):
 
         self.on.db_master_available.emit()
 
-    def _check_for_config_problems(self):
-        """Check for some simple configuration problems and return a
-        string describing them, otherwise return an empty string."""
-        problems = []
-
-        missing = self._missing_charm_settings()
-        if missing:
-            problems.append('required setting(s) empty: {}'.format(', '.join(sorted(missing))))
-
-        return '; '.join(filter(None, problems))
-
-    def _missing_charm_settings(self):
-        """Check configuration setting dependencies and return a list of
-        missing settings; otherwise return an empty list."""
-        config = self.model.config
-
-        # Options in config.yaml are always present as at least ""
-        # so config[setting] will not fail with a KeyError if unset via juju.
-        # We define missing in terms of being required by the charm and explicitly
-        # set rather than default from config.yaml.
-        missing = {setting for setting in REQUIRED_SETTINGS if not config[setting]}
-
-        return sorted(missing)
-
     def _make_pod_spec(self):
         """Return a pod spec with some core configuration."""
         config = self.model.config
@@ -142,9 +121,28 @@ class OpenLDAPK8sCharm(CharmBase):
             ],
         }
 
+    def _on_get_admin_password_action(self, event):
+        """Handle on get-admin-password action."""
+        admin_password = self.get_admin_password()
+        if admin_password:
+            event.set_results({"admin-password": self.get_admin_password()})
+        else:
+            event.fail("LDAP admin password has not yet been set, please retry later.")
+
+    def get_admin_password(self):
+        """Get the LDAP admin password.
+
+        If a password hasn't been set yet, create one if we're the leader,
+        or return an empty string if we're not."""
+        admin_password = self.leader_data["admin_password"]
+        if not admin_password:
+            if self.unit.is_leader:
+                admin_password = host.pwgen(40)
+                self.leader_data["admin_password"] = admin_password
+        return admin_password
+
     def _make_pod_config(self):
         """Return an envConfig with some core configuration."""
-        config = self.model.config
         pod_config = {
             'POSTGRES_NAME': self._state.postgres['dbname'],
             'POSTGRES_USER': self._state.postgres['user'],
@@ -153,8 +151,7 @@ class OpenLDAPK8sCharm(CharmBase):
             'POSTGRES_PORT': self._state.postgres['port'],
         }
 
-        if 'admin_password' in config:
-            pod_config['LDAP_ADMIN_PASSWORD'] = config['admin_password']
+        pod_config['LDAP_ADMIN_PASSWORD'] = self.get_admin_password()
 
         return pod_config
 
@@ -167,11 +164,6 @@ class OpenLDAPK8sCharm(CharmBase):
 
         if not self.unit.is_leader():
             self.unit.status = ActiveStatus()
-            return
-
-        problems = self._check_for_config_problems()
-        if problems:
-            self.unit.status = BlockedStatus(problems)
             return
 
         self.unit.status = MaintenanceStatus('Assembling pod spec')

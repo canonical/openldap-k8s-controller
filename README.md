@@ -11,9 +11,14 @@ cloud, attached to a controller using `juju add-k8s`.
 
 To deploy this charm with both OpenLDAP and PostgreSQL inside a k8s model, run:
 
-    juju deploy cs:~openldap-charmers/openldap --admin_password=admin
+    juju deploy cs:~openldap-charmers/openldap
     juju deploy cs:~postgresql-charmers/postgresql-k8s postgresql
     juju add-relation openldap:db postgresql:db
+
+To retrieve the auto-generated LDAP admin password, run, assuming you're using
+Juju 2.x:
+
+    juju run-action openldap/0 --wait get-admin-password
 
 ### Developing
 
