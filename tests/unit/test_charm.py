@@ -177,3 +177,19 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
             get_admin_password.return_value = 'badmin_password'
             self.harness.charm._on_master_changed(mock_event)
             self.assertEqual(self.harness.charm._state.postgres['dbname'], "openldap")
+
+    def test_on_get_admin_password_action(self):
+        mock_event = MagicMock()
+
+        self.harness.update_config(CONFIG_ALL)
+        with patch.object(self.harness.charm, "get_admin_password") as get_admin_password:
+            get_admin_password.return_value = 'badmin_password'
+            self.harness.charm._on_get_admin_password_action(mock_event)
+            mock_event.set_results.assert_called_with({"admin-password": "badmin_password"})
+            # And now return an empty result.
+            get_admin_password.return_value = ''
+            mock_event.reset_mock()
+            self.harness.charm._on_get_admin_password_action(mock_event)
+            mock_event.set_results.assert_called_with(
+                {"error": "LDAP admin password has not yet been set, please retry later."}
+            )
