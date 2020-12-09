@@ -21,7 +21,7 @@ from ops.model import (
     MaintenanceStatus,
     WaitingStatus,
 )
-from leadership import RichLeaderData
+from leadership import LeadershipSettings
 
 
 pgsql = ops.lib.use("pgsql", 1, "postgresql-charmers@lists.launchpad.net")
@@ -50,7 +50,7 @@ class OpenLDAPK8sCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.leader_data = RichLeaderData(self, "leader_data")
+        self.leader_data = LeadershipSettings()
 
         self.framework.observe(self.on.start, self._configure_pod)
         self.framework.observe(self.on.config_changed, self._configure_pod)
@@ -127,22 +127,19 @@ class OpenLDAPK8sCharm(CharmBase):
         if admin_password:
             event.set_results({"admin-password": self.get_admin_password()})
         else:
-            event.set_results({"error": "LDAP admin password has not yet been set, please retry later."})
+            event.fail("LDAP admin password has not yet been set, please retry later.")
 
     def get_admin_password(self):
         """Get the LDAP admin password.
 
         If a password hasn't been set yet, create one if we're the leader,
         or return an empty string if we're not."""
-        try:
-            return self.leader_data["admin_password"]
-        except KeyError:
+        admin_password = self.leader_data["admin_password"]
+        if not admin_password:
             if self.unit.is_leader:
-                pw = host.pwgen(40)
-                self.leader_data["admin_password"] = pw
-            else:
-                pw = ''
-            return pw
+                admin_password = host.pwgen(40)
+                self.leader_data["admin_password"] = admin_password
+        return admin_password
 
     def _make_pod_config(self):
         """Return an envConfig with some core configuration."""
