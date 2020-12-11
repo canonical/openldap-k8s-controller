@@ -5,6 +5,7 @@ description: |
   An OpenLDAP server using the SQL backend.
 summary: |
   An OpenLDAP server using the SQL backend.
+docs: https://discourse.charmhub.io/t/openldap-documentation-overview/3961
 min-juju-version: 2.8.0  # charm storage in state
 series:
   - kubernetes
