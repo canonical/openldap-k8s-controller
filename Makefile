@@ -37,6 +37,7 @@ image-build: image-lint
 		--no-cache=true \
 		--build-arg BUILD_DATE=$$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
 		--build-arg DIST_RELEASE=$(DIST_RELEASE) \
+		--build-arg LDAP_VERSION=2.4.50 \
 		-t openldap:$(DIST_RELEASE)-latest \
 		.
 
