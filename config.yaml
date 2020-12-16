@@ -1,20 +1,3 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 options:
-    image_path:
-        type: string
-        description: |
-          The location of the image to use.
-
-          This setting is required.
-        default: 'openldapcharmers/openldap:edge'
-    image_username:
-        type: string
-        description: |
-          The username for accessing the registry specified in image_path.
-        default: ''
-    image_password:
-        type: string
-        description: |
-          The password associated with image_username for accessing the registry specified in image_path.
-        default: ''

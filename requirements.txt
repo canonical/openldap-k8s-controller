@@ -1,3 +1,4 @@
 charmhelpers
 ops
 ops-lib-pgsql
+https://github.com/juju-solutions/resource-oci-image/archive/master.zip

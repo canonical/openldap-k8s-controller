@@ -1,5 +1,6 @@
 *~
 *.charm
+*.swp
 .tox
 .coverage
 __pycache__
