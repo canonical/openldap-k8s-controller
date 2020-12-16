@@ -28,7 +28,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         self.harness = testing.Harness(OpenLDAPK8sCharm)
         self.harness.begin()
         self.harness.disable_hooks()
-        self.harness.update_config({})
+        self.harness.add_oci_resource('openldap-image')
 
     def test_make_pod_config(self):
         """Make basic, correct pod config."""
@@ -56,9 +56,9 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
                     {
                         'name': 'openldap',
                         'imageDetails': {
-                            'imagePath': 'example.com/openldap:2.4.50',
-                            'username': '',
-                            'password': '',
+                            'imagePath': 'registrypath',
+                            'username': 'username',
+                            'password': 'password',
                         },
                         'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
                         'envConfig': self.harness.charm._make_pod_config(),
