@@ -13,3 +13,9 @@ requires:
   db:
     interface: pgsql
     limit: 1
+resources:
+  openldap-image:
+    type: oci-image
+    description: docker image for OpenLDAP
+    auto-fetch: true
+    upstream-source: 'openldapcharmers/openldap:2.4.50'

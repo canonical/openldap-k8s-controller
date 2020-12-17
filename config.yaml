@@ -1,20 +1,10 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 options:
-    image_path:
-        type: string
+    container_port:
+        type: int
         description: |
-          The location of the image to use.
+          The port to use for the container, which translates to k8s 'containerPort' and 'ReadinessProbe'.
 
           This setting is required.
-        default: 'openldapcharmers/openldap:edge'
-    image_username:
-        type: string
-        description: |
-          The username for accessing the registry specified in image_path.
-        default: ''
-    image_password:
-        type: string
-        description: |
-          The password associated with image_username for accessing the registry specified in image_path.
-        default: ''
+        default: 389

@@ -5,6 +5,7 @@
 import logging
 
 from charmhelpers.core import host
+from oci_image import OCIImageResource, OCIImageResourceError
 import ops.lib
 from ops.charm import (
     CharmBase,
@@ -18,6 +19,7 @@ from ops.framework import (
 )
 from ops.model import (
     ActiveStatus,
+    BlockedStatus,
     MaintenanceStatus,
     WaitingStatus,
 )
@@ -49,6 +51,8 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def __init__(self, *args):
         super().__init__(*args)
+
+        self.image = OCIImageResource(self, 'openldap-image')
 
         self.leader_data = LeadershipSettings()
 
@@ -98,12 +102,16 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def _make_pod_spec(self):
         """Return a pod spec with some core configuration."""
+        # get image details using OCI image helper library
+        try:
+            image_details = self.image.fetch()
+            logging.info("using imageDetails: {}")
+        except OCIImageResourceError:
+            logging.exception('An error occurred while fetching the image info')
+            self.unit.status = BlockedStatus('Error fetching image information')
+            return {}
+
         config = self.model.config
-        image_details = {
-            'imagePath': config['image_path'],
-        }
-        if config['image_username']:
-            image_details.update({'username': config['image_username'], 'password': config['image_password']})
         pod_config = self._make_pod_config()
 
         return {
@@ -112,10 +120,10 @@ class OpenLDAPK8sCharm(CharmBase):
                 {
                     'name': self.app.name,
                     'imageDetails': image_details,
-                    'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
+                    'ports': [{'containerPort': config['container_port'], 'protocol': 'TCP'}],
                     'envConfig': pod_config,
                     'kubernetes': {
-                        'readinessProbe': {'tcpSocket': {'port': 389}},
+                        'readinessProbe': {'tcpSocket': {'port': config['container_port']}},
                     },
                 }
             ],
