@@ -105,6 +105,7 @@ class OpenLDAPK8sCharm(CharmBase):
         # get image details using OCI image helper library
         try:
             image_details = self.image.fetch()
+            logging.info("using imageDetails: {}")
         except OCIImageResourceError:
             logging.exception('An error occurred while fetching the image info')
             self.unit.status = BlockedStatus('Error fetching image information')
