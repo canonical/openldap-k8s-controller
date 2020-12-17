@@ -102,6 +102,7 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def _make_pod_spec(self):
         """Return a pod spec with some core configuration."""
+        config = self.model.config
         # get image details using OCI image helper library
         try:
             image_details = self.image.fetch()
@@ -119,10 +120,10 @@ class OpenLDAPK8sCharm(CharmBase):
                 {
                     'name': self.app.name,
                     'imageDetails': image_details,
-                    'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
+                    'ports': [{'containerPort': config['container_port'], 'protocol': 'TCP'}],
                     'envConfig': pod_config,
                     'kubernetes': {
-                        'readinessProbe': {'tcpSocket': {'port': 389}},
+                        'readinessProbe': {'tcpSocket': {'port': config['container_port']}},
                     },
                 }
             ],
