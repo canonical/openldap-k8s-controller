@@ -102,7 +102,6 @@ class OpenLDAPK8sCharm(CharmBase):
 
     def _make_pod_spec(self):
         """Return a pod spec with some core configuration."""
-        config = self.model.config
         # get image details using OCI image helper library
         try:
             image_details = self.image.fetch()
@@ -112,6 +111,7 @@ class OpenLDAPK8sCharm(CharmBase):
             self.unit.status = BlockedStatus('Error fetching image information')
             return {}
 
+        config = self.model.config
         pod_config = self._make_pod_config()
 
         return {
