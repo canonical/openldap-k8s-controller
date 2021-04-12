@@ -20,4 +20,4 @@ Juju 2.x:
 
     juju run-action openldap/0 --wait get-admin-password
 
-For further details, [see here](https://charmhub.io/openldap/docs).
+For further details, [see here](https://charmhub.io/openldap-charmers-openldap/docs).
