@@ -21,3 +21,18 @@ Juju 2.x:
     juju run-action openldap/0 --wait get-admin-password
 
 For further details, [see here](https://charmhub.io/openldap-charmers-openldap/docs).
+
+## Development environment
+
+To set up an initial development environment:
+    
+    ```bash
+    git clone git+ssh://git.launchpad.net/charm-k8s-openldap
+    cd charm-k8s-openldap
+    virtualenv venv
+    . venv/bin/activate
+    pip install -r requirements-dev.txt
+    sudo apt install -y tox
+    tox -e unit
+    ```
+
