@@ -2,10 +2,12 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+"""OpenLDAP Charm - a sidecar charm for openldap
+with the option to relate to a PostgreSQL database."""
+
 import logging
 
 from charmhelpers.core import host
-from oci_image import OCIImageResource, OCIImageResourceError
 import ops.lib
 from ops.charm import (
     CharmBase,
@@ -19,7 +21,6 @@ from ops.framework import (
 )
 from ops.model import (
     ActiveStatus,
-    BlockedStatus,
     MaintenanceStatus,
     WaitingStatus,
 )
@@ -35,16 +36,24 @@ DATABASE_NAME = 'openldap'
 
 
 class OpenLDAPDBMasterAvailableEvent(EventBase):
-    pass
+    """OpenLDAP empty handler for master available."""
 
 
 class OpenLDAPCharmEvents(CharmEvents):
     """Custom charm events."""
-
     db_master_available = EventSource(OpenLDAPDBMasterAvailableEvent)
 
 
 class OpenLDAPK8sCharm(CharmBase):
+    """Charm the service as a sidecar charm.
+    Gameplan:
+    render a pebble layer in a func
+    transfer logic to container (i.e. pebble sidecar)
+    remove redundancies
+    test
+    refactor
+    ...
+    """
     _state = StoredState()
 
     on = OpenLDAPCharmEvents()
@@ -52,22 +61,18 @@ class OpenLDAPK8sCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
 
-        self.image = OCIImageResource(self, 'openldap-image')
-
         self.leader_data = LeadershipSettings()
 
-        self.framework.observe(self.on.start, self._configure_pod)
-        self.framework.observe(self.on.config_changed, self._configure_pod)
-        self.framework.observe(self.on.leader_elected, self._configure_pod)
-        self.framework.observe(self.on.upgrade_charm, self._configure_pod)
-        self.framework.observe(self.on.get_admin_password_action, self._on_get_admin_password_action)
+        self.framework.observe(self.on.config_changed, self._on_config_changed)
+        self.framework.observe(self.on.get_admin_password_action,
+                               self._on_get_admin_password_action)
 
         # database
         self._state.set_default(postgres=None)
         self.db = pgsql.PostgreSQLClient(self, 'db')
-        self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)
+        self.framework.observe(self.db.on.database_relation_joined,
+                               self._on_database_relation_joined)
         self.framework.observe(self.db.on.master_changed, self._on_master_changed)
-        self.framework.observe(self.on.db_master_available, self._configure_pod)
 
     def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent):
         """Handle db-relation-joined."""
@@ -100,33 +105,36 @@ class OpenLDAPK8sCharm(CharmBase):
 
         self.on.db_master_available.emit()
 
-    def _make_pod_spec(self):
-        """Return a pod spec with some core configuration."""
-        # get image details using OCI image helper library
-        try:
-            image_details = self.image.fetch()
-            logging.info("using imageDetails: {}")
-        except OCIImageResourceError:
-            logging.exception('An error occurred while fetching the image info')
-            self.unit.status = BlockedStatus('Error fetching image information')
-            return {}
-
-        config = self.model.config
-        pod_config = self._make_pod_config()
+    def _openldap_layer(self):
+        """A pebble layer for OpenLDAP."""
+        ldap_admin_password = self.get_admin_password()
 
         return {
-            'version': 3,  # otherwise resources are ignored
-            'containers': [
-                {
-                    'name': self.app.name,
-                    'imageDetails': image_details,
-                    'ports': [{'containerPort': config['container_port'], 'protocol': 'TCP'}],
-                    'envConfig': pod_config,
-                    'kubernetes': {
-                        'readinessProbe': {'tcpSocket': {'port': config['container_port']}},
+            "summary": "openldap layer",
+            "description": "pebble config layer for openldap",
+            "services": {
+                "openldap": {
+                    "override": "replace",
+                    "startup": "enabled",
+                    "environment": {
+                        'POSTGRES_NAME': self._state.postgres['dbname'],
+                        'POSTGRES_USER': self._state.postgres['user'],
+                        'POSTGRES_PASSWORD': self._state.postgres['password'],
+                        'POSTGRES_HOST': self._state.postgres['host'],
+                        'POSTGRES_PORT': self._state.postgres['port'],
+                        'LDAP_ADMIN_PASSWORD': ldap_admin_password,
                     },
                 }
-            ],
+            },
+            "checks": {
+                "online": {
+                    "override": "replace",
+                    "level": "ready",
+                    "tcp": {
+                        "port": self.config["container_port"]
+                    },
+                },
+            },
         }
 
     def _on_get_admin_password_action(self, event):
@@ -144,27 +152,14 @@ class OpenLDAPK8sCharm(CharmBase):
         or return an empty string if we're not."""
         admin_password = self.leader_data["admin_password"]
         if not admin_password:
+            # TODO make a test here to see whether we shouldn't call the function
             if self.unit.is_leader:
                 admin_password = host.pwgen(40)
                 self.leader_data["admin_password"] = admin_password
         return admin_password
 
-    def _make_pod_config(self):
-        """Return an envConfig with some core configuration."""
-        pod_config = {
-            'POSTGRES_NAME': self._state.postgres['dbname'],
-            'POSTGRES_USER': self._state.postgres['user'],
-            'POSTGRES_PASSWORD': self._state.postgres['password'],
-            'POSTGRES_HOST': self._state.postgres['host'],
-            'POSTGRES_PORT': self._state.postgres['port'],
-        }
-
-        pod_config['LDAP_ADMIN_PASSWORD'] = self.get_admin_password()
-
-        return pod_config
-
-    def _configure_pod(self, event):
-        """Assemble the pod spec and apply it, if possible."""
+    def _on_config_changed(self, event):
+        """Reconfigure service."""
         if not self._state.postgres:
             self.unit.status = WaitingStatus('Waiting for database relation')
             event.defer()
@@ -174,12 +169,18 @@ class OpenLDAPK8sCharm(CharmBase):
             self.unit.status = ActiveStatus()
             return
 
-        self.unit.status = MaintenanceStatus('Assembling pod spec')
-        pod_spec = self._make_pod_spec()
+        container = self.unit.get_container("openldap")
+        layer = self._openldap_layer()
 
-        self.unit.status = MaintenanceStatus('Setting pod spec')
-        self.model.pod.set_spec(pod_spec)
-        self.unit.status = ActiveStatus()
+        if container.can_connect():
+            services = container.get_plan().to_dict().get("services", {})
+            if services != layer["services"]:
+                self.unit.status = MaintenanceStatus("adjusting workload container")
+                container.add_layer("openldap", layer, combine=True)
+                container.restart("openldap")
+            self.unit.status = ActiveStatus()
+        else:
+            self.unit.status = WaitingStatus("waiting for Pebble in workload continer")
 
 
 if __name__ == "__main__":
