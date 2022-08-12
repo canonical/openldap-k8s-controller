@@ -6,8 +6,9 @@
 with the option to relate to a PostgreSQL database."""
 
 import logging
+import random
+import string
 
-from charmhelpers.core import host
 import ops.lib
 from ops.charm import (
     CharmBase,
@@ -73,6 +74,22 @@ class OpenLDAPK8sCharm(CharmBase):
         self.framework.observe(self.db.on.database_relation_joined,
                                self._on_database_relation_joined)
         self.framework.observe(self.db.on.master_changed, self._on_master_changed)
+
+    @staticmethod
+    def _pwgen(length=None):
+        """Generate a random password."""
+        if length is None:
+            # A random length is ok to use a weak PRNG
+            length = random.choice(range(35, 45))
+        alphanumeric_chars = [
+            letter for letter in (string.ascii_letters + string.digits)
+            if letter not in 'l0QD1vAEIOUaeiou']
+        # Use a crypto-friendly PRNG (e.g. /dev/urandom) for making the
+        # actual password
+        random_generator = random.SystemRandom()
+        random_chars = [
+            random_generator.choice(alphanumeric_chars) for _ in range(length)]
+        return ''.join(random_chars)
 
     def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent):
         """Handle db-relation-joined."""
@@ -154,7 +171,7 @@ class OpenLDAPK8sCharm(CharmBase):
         if not admin_password:
             # TODO make a test here to see whether we shouldn't call the function
             if self.unit.is_leader:
-                admin_password = host.pwgen(40)
+                admin_password = self._pwgen(40)
                 self.leader_data["admin_password"] = admin_password
         return admin_password
 
