@@ -133,6 +133,7 @@ class OpenLDAPK8sCharm(CharmBase):
                 "openldap": {
                     "override": "replace",
                     "startup": "enabled",
+                    "command": "/srv/image-scripts/configure-and-run-openldap.sh",
                     "environment": {
                         'POSTGRES_NAME': self._state.postgres['dbname'],
                         'POSTGRES_USER': self._state.postgres['user'],
