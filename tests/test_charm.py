@@ -28,54 +28,49 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         self.harness = testing.Harness(OpenLDAPK8sCharm)
         self.harness.begin()
         self.harness.disable_hooks()
-        self.harness.add_oci_resource('openldap-image')
 
-    def test_make_pod_config(self):
-        """Make basic, correct pod config."""
+    def test_openldap_layer(self):
+        """Test OpenLDAP Pebble layer."""
         self.harness.charm._state.postgres = DB_URI
         expected = {
-            'POSTGRES_NAME': 'openldap',
-            'POSTGRES_USER': 'ldap_user',
-            'POSTGRES_PASSWORD': 'ldap_password',
-            'POSTGRES_HOST': '1.1.1.1',
-            'POSTGRES_PORT': '5432',
-            'LDAP_ADMIN_PASSWORD': 'badmin_password',
+            "summary": "openldap layer",
+            "description": "pebble config layer for openldap",
+            "services": {
+                "openldap": {
+                    "override": "replace",
+                    "startup": "enabled",
+                    "command": "/srv/image-scripts/configure-and-run-openldap.sh",
+                    "environment": {
+                        'POSTGRES_NAME': 'openldap',
+                        'POSTGRES_USER': 'ldap_user',
+                        'POSTGRES_PASSWORD': 'ldap_password',
+                        'POSTGRES_HOST': '1.1.1.1',
+                        'POSTGRES_PORT': '5432',
+                        'LDAP_ADMIN_PASSWORD': 'badmin_password',
+                    },
+                }
+            },
+            "checks": {
+                "online": {
+                    "override": "replace",
+                    "level": "ready",
+                    "tcp": {
+                        "port": 389,
+                    },
+                },
+            },
+
         }
         with patch.object(self.harness.charm, "get_admin_password") as get_admin_password:
             get_admin_password.return_value = 'badmin_password'
-            self.assertEqual(self.harness.charm._make_pod_config(), expected)
-
-    def test_make_pod_spec(self):
-        """Basic, correct pod spec."""
-        self.harness.charm._state.postgres = DB_URI
-        with patch.object(self.harness.charm, "get_admin_password") as get_admin_password:
-            get_admin_password.return_value = 'badmin_password'
-            expected = {
-                'version': 3,
-                'containers': [
-                    {
-                        'name': 'openldap',
-                        'imageDetails': {
-                            'imagePath': 'registrypath',
-                            'username': 'username',
-                            'password': 'password',
-                        },
-                        'ports': [{'containerPort': 389, 'protocol': 'TCP'}],
-                        'envConfig': self.harness.charm._make_pod_config(),
-                        'kubernetes': {
-                            'readinessProbe': {'tcpSocket': {'port': 389}},
-                        },
-                    }
-                ],
-            }
-            self.assertEqual(self.harness.charm._make_pod_spec(), expected)
+            self.assertEqual(self.harness.charm._openldap_layer(), expected)
 
     def test_configure_pod_no_postgres_relation(self):
         """Check that we block correctly without a Postgres relation."""
         mock_event = MagicMock()
 
         expected = WaitingStatus('Waiting for database relation')
-        self.harness.charm._configure_pod(mock_event)
+        self.harness.charm._on_config_changed(mock_event)
         self.assertEqual(self.harness.charm.unit.status, expected)
 
     def test_configure_pod_not_leader(self):
@@ -84,7 +79,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
 
         self.harness.charm._state.postgres = DB_URI
         expected = ActiveStatus()
-        self.harness.charm._configure_pod(mock_event)
+        self.harness.charm._on_config_changed(mock_event)
         self.assertEqual(self.harness.charm.unit.status, expected)
 
     def test_configure_pod(self):
@@ -96,7 +91,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         expected = ActiveStatus()
         with patch.object(self.harness.charm, "get_admin_password") as get_admin_password:
             get_admin_password.return_value = 'badmin_password'
-            self.harness.charm._configure_pod(mock_event)
+            self.harness.charm._on_config_changed(mock_event)
             self.assertEqual(self.harness.charm.unit.status, expected)
 
     def test_on_database_relation_joined(self):
