@@ -1,18 +1,22 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
 
+"""Unit tests for charm-k8s-openldap charm."""
+
 import unittest
 from unittest.mock import patch
-
-from charm import OpenLDAPK8sCharm
+from unittest.mock import MagicMock
 from collections import namedtuple
+
 from ops import testing
 from ops.model import (
     ActiveStatus,
     WaitingStatus,
 )
 
-from unittest.mock import MagicMock
+from charm import OpenLDAPK8sCharm
+
+testing.SIMULATE_CAN_CONNECT = True
 
 DB_URI = {
     'dbname': 'openldap',
@@ -91,6 +95,7 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         expected = ActiveStatus()
         with patch.object(self.harness.charm, "get_admin_password") as get_admin_password:
             get_admin_password.return_value = 'badmin_password'
+            self.harness.container_pebble_ready('openldap')
             self.harness.charm._on_config_changed(mock_event)
             self.assertEqual(self.harness.charm.unit.status, expected)
 

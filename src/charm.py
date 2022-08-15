@@ -46,15 +46,7 @@ class OpenLDAPCharmEvents(CharmEvents):
 
 
 class OpenLDAPK8sCharm(CharmBase):
-    """Charm the service as a sidecar charm.
-    Gameplan:
-    render a pebble layer in a func
-    transfer logic to container (i.e. pebble sidecar)
-    remove redundancies
-    test
-    refactor
-    ...
-    """
+    """Charm the service as a sidecar charm."""
     _state = StoredState()
 
     on = OpenLDAPCharmEvents()
@@ -170,7 +162,6 @@ class OpenLDAPK8sCharm(CharmBase):
         or return an empty string if we're not."""
         admin_password = self.leader_data["admin_password"]
         if not admin_password:
-            # TODO make a test here to see whether we shouldn't call the function
             if self.unit.is_leader:
                 admin_password = self._pwgen(40)
                 self.leader_data["admin_password"] = admin_password
