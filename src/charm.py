@@ -189,7 +189,7 @@ class OpenLDAPK8sCharm(CharmBase):
                 container.restart("openldap")
             self.unit.status = ActiveStatus()
         else:
-            self.unit.status = WaitingStatus("waiting for Pebble in workload continer")
+            self.unit.status = WaitingStatus("waiting for Pebble in workload container")
 
 
 if __name__ == "__main__":
