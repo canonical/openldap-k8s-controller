@@ -17,7 +17,7 @@
 
 import collections.abc
 import subprocess
-from typing import Any, Iterable, Dict, MutableMapping, Protocol
+from typing import Any, Dict, Iterable, MutableMapping, Protocol
 
 import ops
 import yaml

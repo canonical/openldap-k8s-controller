@@ -4,15 +4,11 @@
 """Unit tests for charm-k8s-openldap charm."""
 
 import unittest
-from unittest.mock import patch
-from unittest.mock import MagicMock
 from collections import namedtuple
+from unittest.mock import MagicMock, patch
 
 from ops import testing
-from ops.model import (
-    ActiveStatus,
-    WaitingStatus,
-)
+from ops.model import ActiveStatus, WaitingStatus
 
 from charm import OpenLDAPK8sCharm
 
@@ -63,7 +59,6 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
                     },
                 },
             },
-
         }
         with patch.object(self.harness.charm, "get_admin_password") as get_admin_password:
             get_admin_password.return_value = 'badmin_password'
@@ -127,7 +122,6 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
                     },
                 },
             },
-
         }
 
         self.harness.charm._state.postgres = DB_URI
@@ -152,6 +146,14 @@ class TestOpenLDAPK8sCharmHooksDisabled(unittest.TestCase):
         expected = "openldap"
         self.harness.charm._on_database_relation_joined(mock_event)
         self.assertEqual(mock_event.database, expected)
+
+    def test_on_database_relation_broken(self):
+        mock_event = MagicMock()
+
+        self.harness.set_leader(True)
+        expected = WaitingStatus('Waiting for database relation')
+        self.harness.charm._on_database_relation_broken(mock_event)
+        self.assertEqual(self.harness.charm.unit.status, expected)
 
     def test_on_master_changed(self):
         mock_event = MagicMock()
