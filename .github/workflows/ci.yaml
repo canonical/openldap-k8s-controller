@@ -37,7 +37,7 @@ jobs:
         with:
           provider: microk8s
       - name: Run integration tests
-        run: tox -e integration -- --model testing --openldap-image openldapcharmers/openldap:2.4.50
+        run: tox -e integration -- --model testing
       - name: Dump logs
         uses: canonical/charm-logdump-action@main
         if: failure()
