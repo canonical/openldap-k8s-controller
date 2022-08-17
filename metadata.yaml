@@ -1,6 +1,6 @@
 # Copyright 2020 Canonical Ltd.
 # See LICENSE file for licensing details.
-name: openldap
+name: openldap-k8s
 description: |
   An OpenLDAP server using the SQL backend.
 summary: |
