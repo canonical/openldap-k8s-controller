@@ -10,23 +10,12 @@ import random
 import string
 
 import ops.lib
-from ops.charm import (
-    CharmBase,
-    CharmEvents,
-)
+from ops.charm import CharmBase, CharmEvents
+from ops.framework import EventBase, EventSource, StoredState
 from ops.main import main
-from ops.framework import (
-    StoredState,
-    EventBase,
-    EventSource,
-)
-from ops.model import (
-    ActiveStatus,
-    MaintenanceStatus,
-    WaitingStatus,
-)
-from leadership import LeadershipSettings
+from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 
+from leadership import LeadershipSettings
 
 pgsql = ops.lib.use("pgsql", 1, "postgresql-charmers@lists.launchpad.net")
 
@@ -42,11 +31,13 @@ class OpenLDAPDBMasterAvailableEvent(EventBase):
 
 class OpenLDAPCharmEvents(CharmEvents):
     """Custom charm events."""
+
     db_master_available = EventSource(OpenLDAPDBMasterAvailableEvent)
 
 
 class OpenLDAPK8sCharm(CharmBase):
     """Charm the service as a sidecar charm."""
+
     _state = StoredState()
 
     on = OpenLDAPCharmEvents()
@@ -57,14 +48,13 @@ class OpenLDAPK8sCharm(CharmBase):
         self.leader_data = LeadershipSettings()
 
         self.framework.observe(self.on.config_changed, self._on_config_changed)
-        self.framework.observe(self.on.get_admin_password_action,
-                               self._on_get_admin_password_action)
+        self.framework.observe(self.on.get_admin_password_action, self._on_get_admin_password_action)
 
         # database
         self._state.set_default(postgres=None)
         self.db = pgsql.PostgreSQLClient(self, 'db')
-        self.framework.observe(self.db.on.database_relation_joined,
-                               self._on_database_relation_joined)
+        self.framework.observe(self.db.on.database_relation_joined, self._on_database_relation_joined)
+        self.framework.observe(self.db.on.database_relation_broken, self._on_database_relation_broken)
         self.framework.observe(self.db.on.master_changed, self._on_master_changed)
 
     @staticmethod
@@ -74,13 +64,12 @@ class OpenLDAPK8sCharm(CharmBase):
             # A random length is ok to use a weak PRNG
             length = random.choice(range(35, 45))
         alphanumeric_chars = [
-            letter for letter in (string.ascii_letters + string.digits)
-            if letter not in 'l0QD1vAEIOUaeiou']
+            letter for letter in (string.ascii_letters + string.digits) if letter not in 'l0QD1vAEIOUaeiou'
+        ]
         # Use a crypto-friendly PRNG (e.g. /dev/urandom) for making the
         # actual password
         random_generator = random.SystemRandom()
-        random_chars = [
-            random_generator.choice(alphanumeric_chars) for _ in range(length)]
+        random_chars = [random_generator.choice(alphanumeric_chars) for _ in range(length)]
         return ''.join(random_chars)
 
     def _on_database_relation_joined(self, event: pgsql.DatabaseRelationJoinedEvent):
@@ -89,9 +78,14 @@ class OpenLDAPK8sCharm(CharmBase):
             # Provide requirements to the PostgreSQL server.
             event.database = DATABASE_NAME  # Request database named mydbname
         elif event.database != DATABASE_NAME:
-            # Leader has not yet set requirements. Defer, incase this unit
+            # Leader has not yet set requirements. Defer, in case this unit
             # becomes leader and needs to perform that operation.
             event.defer()
+
+    def _on_database_relation_broken(self, _):
+        """Handle db-relation-broken."""
+        self._state.postgres = None
+        self.unit.status = WaitingStatus('Waiting for database relation')
 
     def _on_master_changed(self, event: pgsql.MasterChangedEvent):
         """Handle changes in the primary database unit."""
@@ -140,9 +134,7 @@ class OpenLDAPK8sCharm(CharmBase):
                 "online": {
                     "override": "replace",
                     "level": "ready",
-                    "tcp": {
-                        "port": self.config["container_port"]
-                    },
+                    "tcp": {"port": self.config["container_port"]},
                 },
             },
         }
