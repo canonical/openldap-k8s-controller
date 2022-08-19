@@ -11,28 +11,12 @@ details on using Juju with MicroK8s for easy local testing [see here](https://ju
 
 To deploy this charm with both OpenLDAP and PostgreSQL inside a k8s model, run:
 
-    juju deploy cs:~openldap-charmers/openldap
-    juju deploy cs:~postgresql-charmers/postgresql-k8s postgresql
-    juju add-relation openldap:db postgresql:db
+    juju deploy openldap-k8s
+    juju deploy postgresql-k8s
+    juju relate openldap:db postgresql-k8s:db
 
-To retrieve the auto-generated LDAP admin password, run, assuming you're using
-Juju 2.x:
+To retrieve the auto-generated LDAP admin password, run:
 
     juju run-action openldap/0 --wait get-admin-password
 
 For further details, [see here](https://charmhub.io/openldap-charmers-openldap/docs).
-
-## Development environment
-
-To set up an initial development environment:
-    
-    ```bash
-    git clone git+ssh://git.launchpad.net/charm-k8s-openldap
-    cd charm-k8s-openldap
-    virtualenv venv
-    . venv/bin/activate
-    pip install -r requirements-dev.txt
-    sudo apt install -y tox
-    tox -e unit
-    ```
-
