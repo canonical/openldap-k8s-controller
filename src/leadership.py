@@ -31,16 +31,7 @@ class _Codec(Protocol):
         raise NotImplementedError("decode")
 
 
-class _ObjectABCMeta(type(ops.framework.Object), type(collections.abc.MutableMapping)):
-    """This metaclass can go once the Operator Framework drops Python 3.5 support.
-
-    Per ops.framework._Metaclass docstring.
-    """
-
-    pass
-
-
-class _PeerData(ops.framework.Object, collections.abc.MutableMapping, metaclass=_ObjectABCMeta):
+class _PeerData(ops.framework.Object, collections.abc.MutableMapping):
     """A bag of data shared between peer units.
 
     Only the leader can set data. All peer units can read.
